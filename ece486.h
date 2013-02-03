@@ -85,8 +85,8 @@
       over the range of the ADCs & DACs. (A sample of -1.0 is near 0V,
       +1.0 is near 3V, and 0.0 indicates the mid-scale voltage of 1.5V)
 	   
-      Digital output are also configured on pins PA1, PC4, and PC5.  
-      Users can set the values of these output using statements such as:
+      Digital outputs are also configured on pins PA1, PC4, and PC5.  
+      Users can set the values of these outputs using statements such as:
       @code
          GPIO_ResetBits(GPIOA, GPIO_Pin_1 );	// Reset PA1
          GPIO_SetBits(GPIOC, GPIO_Pin_4 );	// Set PC4
