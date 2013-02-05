@@ -15,29 +15,37 @@
 /*
  * Global data buffers which are being filled/emptied by the DMAs
  */
-uint32_t ADC_Input_Buffer[ADCBUFLEN];	
-uint32_t DAC_Output_Buffer[DACBUFLEN];
+volatile uint32_t *ADC_Input_Buffer;	
+volatile uint32_t *DAC_Output_Buffer;
 
 /*
- * Sampler_Status indicates whether the user is working on a buffer of data, or has 
- * finished working on the buffer and is waiting for the next buffer to arrive.
- * The variable is used in the interrupt service routine to detect whether a 
- * "buffer overrun" has occurred.
+ * Data Block sizes for streamed ADC/DAC data
+ */
+uint32_t ADC_Block_Size = DEFAULT_BLOCKSIZE;	//!< Number of samples user accesses per data block
+uint32_t ADC_Buffer_Size = 2*DEFAULT_BLOCKSIZE; //!< Total buffer size being filled by DMA for ADC/DAC
+
+/*
+ * Sampler_Status indicates whether the user is working on a buffer of data,
+ * or has finished working on the buffer and is waiting for the next buffer to 
+ * arrive. The variable is used in the interrupt service routine to detect 
+ * whether a "buffer overrun" has occurred.
  */
 static enum Processor_Task volatile Sampler_Status;
 
 /*
- * The ISR also sets the lowerrdy flag to indicate whether the processor should be working
- * on the upper half or the lower half of the DMA data buffers.  (The user gets to work on
+ * The ISR also sets the lowerrdy flag to indicate whether the processor 
+ * should be working  on the upper half or the lower half of the DMA 
+ * data buffers.  (The user gets to work on
  * one half of the data, while the DMAs are streaming the other half.)
  */
-static volatile int lowerrdy = 0;  // Set by the ISR to indicate which buffer is available
+static volatile int lowerrdy = 0;  // Set by the ISR to indicate which 
+				   // buffer is available
 
 /*
  * Pointers to the half-buffer which should be worked upon
  */
-static uint32_t * inbuf;	
-static uint32_t * outbuf;	
+static volatile uint32_t * inbuf;	
+static volatile uint32_t * outbuf;	
 
 
 
@@ -47,7 +55,17 @@ static uint32_t * outbuf;
 */
 int getblocksize()
 {
-	return ADCWAIT;
+	return ADC_Block_Size;
+}
+
+/*
+ * Set the number of samples that the user should expect to process per block
+ * 
+ */
+void setblocksize( uint32_t blksiz )
+{
+  ADC_Block_Size = blksiz;
+  ADC_Buffer_Size = 2*blksiz;
 }
 
 /*
@@ -70,7 +88,7 @@ int getblocksize()
 */
 void getblock(float * working)
 {
-  int i;
+  uint32_t i;
 
   // Wait for the DMA to finish filling a block of data
   Sampler_Status = WAIT_FOR_NEXT_BUFFER;
@@ -82,13 +100,13 @@ void getblock(float * working)
     inbuf = ADC_Input_Buffer;
     outbuf = DAC_Output_Buffer;
   } else {
-    inbuf = &(ADC_Input_Buffer[ADCWAIT]);
-    outbuf = &(DAC_Output_Buffer[ADCWAIT]);
+    inbuf = &(ADC_Input_Buffer[ADC_Block_Size]);
+    outbuf = &(DAC_Output_Buffer[ADC_Block_Size]);
   }
 
   // Now convert the valid ADC data into the caller's array of floats.
   // Samples are normalized to range from -1.0 to 1.0
-  for (i=0; i< ADCWAIT; i++) {
+  for (i=0; i< ADC_Block_Size; i++) {
      // 1/32768 = 3.0517578e-05  (Multiplication is much faster than dividing)
      working[i] = ((float)((int)inbuf[i]-32767))*3.0517578e-05f; 
   }
@@ -110,14 +128,14 @@ void getblock(float * working)
 */
 void putblock(float * working)
 {
-  int i;
+  uint32_t i;
 
   // the "outbuf" pointer is set by getblock() to indicate the 
   // appropriate destination of any output samples.
   //
   // floating point values between -1 and +1 are mapped 
   // into the range of the DAC
-  for (i=0; i<ADCWAIT; i++) {
+  for (i=0; i<ADC_Block_Size; i++) {
     outbuf[i] = ((int)((working[i]+1.0)*32768.0f)) & 0x0000ffff;
   }
 }
@@ -125,7 +143,7 @@ void putblock(float * working)
 
 void putblockstereo(float * chan1, float * chan2)
 {
-	int i;
+	uint32_t i;
 
   // the "outbuf" pointer is set by getblock() to indicate the 
   // appropriate destination of any output samples.
@@ -135,7 +153,7 @@ void putblockstereo(float * chan1, float * chan2)
   //
   // chan1 goes into the most-significant 16 bits (DAC1), 
   // chan2 in the least significant (DAC1)
-  for (i=0; i<ADCWAIT; i++) {
+  for (i=0; i<ADC_Block_Size; i++) {
     outbuf[i] = ( ((int)((chan2[i]+1.0)*32768.0f)) & 0x0000ffff ) |
                 ((((int)((chan1[i]+1.0)*32768.0f)) & 0x0000ffff)<<16);
   }
@@ -144,7 +162,7 @@ void putblockstereo(float * chan1, float * chan2)
 
 void getblockstereo(float *chan1, float *chan2)
 {
-  int i;
+  uint32_t i;
 
   // Wait for the DMA to finish filling a block of data
   Sampler_Status = WAIT_FOR_NEXT_BUFFER;
@@ -156,18 +174,18 @@ void getblockstereo(float *chan1, float *chan2)
     inbuf = ADC_Input_Buffer;
     outbuf = DAC_Output_Buffer;
   } else {
-    inbuf = &(ADC_Input_Buffer[ADCWAIT]);
-    outbuf = &(DAC_Output_Buffer[ADCWAIT]);
+    inbuf = &(ADC_Input_Buffer[ADC_Block_Size]);
+    outbuf = &(DAC_Output_Buffer[ADC_Block_Size]);
   }
 
   // Now convert the valid ADC data into the caller's arrays of floats.
   // Samples are normalized to range from -1.0 to 1.0
-  // Channel 1 should be in the least significant 16 bits of the DMA transfer data,
-  // Channel 2 should be in the most significant 16 bits.
-  for (i=0; i< ADCWAIT; i++) {
+  // Channel 1 is in the least significant 16 bits of the DMA transfer data,
+  // Channel 2 is in the most significant 16 bits.
+  for (i=0; i< ADC_Block_Size; i++) {
      // 1/32768 = 3.0517578e-05  (Multiplication is much faster than dividing)
-     chan1[i] = ((float)( (int)(inbuf[i]&0x0000ffff) -32767))*3.0517578e-05f; 
-     chan2[i] = ((float)( (int)((inbuf[i]&0xffff0000)>>16) -32767))*3.0517578e-05f; 
+     chan1[i]=((float)( (int)(inbuf[i]&0x0000ffff)-32767))*3.0517578e-05f; 
+     chan2[i]=((float)( (int)((inbuf[i]&0xffff0000)>>16)-32767))*3.0517578e-05f; 
   }
 }
 
@@ -196,11 +214,12 @@ void DMA2_Stream4_IRQHandler(void)
   }
 	
   if (Sampler_Status == WAIT_FOR_NEXT_BUFFER) {
-    Sampler_Status = PROCESS_BUFFER;	// Turn the supervisor loose on the next buffer
+    Sampler_Status = PROCESS_BUFFER;	// Turn the supervisor loose on the 
+					// next buffer
   } else {
-    flagerror(SAMPLE_OVERRUN);		// If the supervisor was not waiting for the next
-					// buffer, flag the error to let him/her know that 
-					// they're missing blocks of data.
+    flagerror(SAMPLE_OVERRUN);	// If the supervisor was not waiting for the next
+				// buffer, flag the error to let him/her know that 
+				// they're missing blocks of data.
   }
 }
 

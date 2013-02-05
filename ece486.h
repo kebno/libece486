@@ -132,11 +132,11 @@
     - DMA2_Stream4 is triggered by ADC1 using channel 0
     - ADC2 is a slave to ADC1 in dual sampling mode (Stereo input case)
     
-  DMA2_Stream4 data is moved into an internal buffer of size #ADCBUFLEN.  
+  DMA2_Stream4 data is moved into an internal buffer of size #ADC_Buffer_Size.  
   Interrupts from DMA2_Stream4 are generated when the buffer is 
   half-full and full, indicating that the user may process one-half 
   of the samples, while the other half is being filled.  
-  getblocksize() returns a value of #ADCWAIT, which is actually half 
+  getblocksize() returns a value of #ADC_Block_Size, which is actually half 
   of the size of the actual DMA buffer (indicating the amount of data free to be 
   processed in each sample block).
 	

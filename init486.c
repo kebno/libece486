@@ -16,6 +16,7 @@
 
 
 #include <stdint.h>
+#include <stdlib.h>
 #include "stm32f4_discovery.h"
 #include "sample486.h"
 #include "init486.h"
@@ -42,6 +43,18 @@ void initialize(uint16_t fs,
                         // function---allowing them to reprogram)
 			// In particular, the __WFI seems to cause st-flash grief.
 	
+  /*
+   * request memory for the ADC and DAC DMA transfer buffers
+   */
+  ADC_Input_Buffer = (uint32_t *)malloc(sizeof(uint32_t)*ADC_Buffer_Size);
+  DAC_Output_Buffer = (uint32_t *)malloc(sizeof(uint32_t)*ADC_Buffer_Size);
+  
+  if (ADC_Input_Buffer==NULL || DAC_Output_Buffer==NULL ) {
+    flagerror(MEMORY_ALLOCATION_ERROR);
+    while(1);
+  }
+  
+  
   /*
    * DAC Configuration
    */
@@ -264,9 +277,9 @@ void initdacdma(enum Num_Channels_Out chanout)
   }
 
   dmainfo.DMA_Channel = DMA_Channel_7;  
-  dmainfo.DMA_Memory0BaseAddr = (uint32_t)&DAC_Output_Buffer;
+  dmainfo.DMA_Memory0BaseAddr = (uint32_t)DAC_Output_Buffer;
   dmainfo.DMA_DIR = DMA_DIR_MemoryToPeripheral;
-  dmainfo.DMA_BufferSize =  DACBUFLEN;
+  dmainfo.DMA_BufferSize =  ADC_Buffer_Size;
   dmainfo.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
   dmainfo.DMA_MemoryInc = DMA_MemoryInc_Enable;
   dmainfo.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;
@@ -427,9 +440,9 @@ void initadcdma(void)
   
   dmainfo.DMA_Channel = DMA_Channel_0;
   dmainfo.DMA_PeripheralBaseAddr = (uint32_t) (ADC1_DR_ADDRESS);
-  dmainfo.DMA_Memory0BaseAddr = (uint32_t) &ADC_Input_Buffer;
+  dmainfo.DMA_Memory0BaseAddr = (uint32_t) ADC_Input_Buffer;
   dmainfo.DMA_DIR = DMA_DIR_PeripheralToMemory;
-  dmainfo.DMA_BufferSize = ADCBUFLEN;
+  dmainfo.DMA_BufferSize = ADC_Buffer_Size;
   dmainfo.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
   dmainfo.DMA_MemoryInc = DMA_MemoryInc_Enable;
   dmainfo.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;
@@ -539,7 +552,7 @@ void initadcdmastereo(void)
   dmainfo.DMA_PeripheralBaseAddr = (uint32_t) (CDR_ADDRESS);
   dmainfo.DMA_Memory0BaseAddr = (uint32_t) &ADC_Input_Buffer;
   dmainfo.DMA_DIR = DMA_DIR_PeripheralToMemory;
-  dmainfo.DMA_BufferSize = ADCBUFLEN;
+  dmainfo.DMA_BufferSize = ADC_Buffer_Size;
   dmainfo.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
   dmainfo.DMA_MemoryInc = DMA_MemoryInc_Enable;
   dmainfo.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;

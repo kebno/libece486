@@ -2,8 +2,8 @@ TARGET=ece486
 OBJS=init486.o err486.o sample486.o blinkandwait.o
 
 # gcc development tools install directory for STM32F4xx processors
-#armbase = /usr/local/arm-hard/
-armbase = /usr/linux/arm-hard/
+armbase = /usr/local/arm-hard/
+#armbase = /usr/linux/arm-hard/
 
 
 CC=$(armbase)/bin/arm-eabi-gcc

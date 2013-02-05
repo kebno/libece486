@@ -97,31 +97,6 @@ enum Num_Channels_Out {
  * Global variables.....................................................................
  */
 
-/*!
- * @brief Buffer to store samples transfered from the ADC by a DMA.
- * 
- * The DMA is configured to continually transfer samples from the ADC(s) into the 
- * ADC_Input_Buffer.  When the buffer is half-full or full, an interrupt is generated
- * to allow the valid samples to be translated into float values and handed to the user.
- * 
- * In Mono input mode, samples are 12-bits, left-aligned in the least significant 16 bits of each
- * word of the buffer.  In Stereo input mode, the least significant 16 bits holds channel 1,
- * and the most significant 16 bits holds the channel 2 data.
- */
-extern volatile uint32_t ADC_Input_Buffer;
-
-/*!
- * @brief Buffer to hold samples to be transfered to the DAC(s) by a DMA.
- * 
- * A DMA is configured to continually transfer samples from DAC_Output_Buffer to the 
- * DAC(s).
- * 
- * In Mono input mode, samples are 12-bits, left-aligned in the least significant 16 bits of each
- * word of the buffer.  In Stereo input mode, the least significant 16 bits holds channel 1,
- * and the most significant 16 bits holds the channel 2 data.
- */
-extern volatile uint32_t DAC_Output_Buffer;
-
 /*
  * Function Prototypes.....................................................................
  */
