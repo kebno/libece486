@@ -1,2 +1,41 @@
-ECE 486 Support Libraries for real-time DSP labs using the STM32F4-Discovery 
-Development Boards
+ECE 486 Support for real-time DSP labs using the STM32F4-Discovery Boards
+
+This collection of routines is designed to support real-time
+DSP labs for the University of Maine ECE-486 Digital Signal
+Processing course.
+
+The processor is configured so that ADC1 and ADC2 sample analog input
+signals.  The sample stream is buffered by a DMA, converted to type 
+float, and passed to the user for processing.  The user processes the 
+sampled data stream, and returns the floating point results to an
+output buffer.  A second DMA is configured to stream the resulting data
+to DAC1 and DAC2 for analog output. The user continually processes sequential
+buffers of data allowing the analog signals to be (digitally) manipulated
+in real-time.
+
+GPIO Pins are configured such that all analog inputs/outputs are 
+accessed in the first 20 pins of the P1 connector of the Discovery 
+boards.  (Students use a connector with 20-pin ribbon cable to map
+this portion of the P1-connector to a DIP socket, which they can 
+plug into a standard prototyping board.
+
+In addition to the analog ADC and DAC pins, limited digital GPIO outputs
+are supported on the 20-pin interface, as well as the standard LEDs and 
+user push-button interface from the Discovery boards.
+
+All processor configuration (clocks, ADCs, DMAs, Timers, GPIO) is handled
+by the library.  Users of the library can select:
+
+  - Sample rates ranging from 500 Hz to 500 kHz
+  - Mono or Stereo Analog Inputs
+  - Mono or Stereo Analog Outputs
+  - Adjustable data block sizes for streamed data 
+    (down to 1-sample "blocks", if desired for low-latency applications)
+    
+Currently, ADC and DAC sample rates are locked together.  The on-board CODEC
+is NOT used.  Rather, the 12-bit ADC(s) and 12-bit DAC(s) built into the
+microcontroller are used.
+  
+
+
+
