@@ -15,8 +15,8 @@
 /*
  * Global data buffers which are being filled/emptied by the DMAs
  */
-volatile uint32_t *ADC_Input_Buffer;	
-volatile uint32_t *DAC_Output_Buffer;
+volatile uint32_t *ADC_Input_Buffer=NULL;	
+volatile uint32_t *DAC_Output_Buffer=NULL;
 
 /*
  * Data Block sizes for streamed ADC/DAC data
@@ -64,6 +64,17 @@ int getblocksize()
  */
 void setblocksize( uint32_t blksiz )
 {
+  /*
+   * setblocksize() should only be called before calling initialize().
+   * If the ADC & DAC buffers have already been allocated, then initialize()
+   * must have already been called, and we're too late to change the buffer
+   * sizes.  Flag an error and return without changing anything.
+   */
+  if (ADC_Input_Buffer != NULL) {
+    flagerror(SETBLOCKSIZE_ERROR);
+    return;
+  }
+  
   ADC_Block_Size = blksiz;
   ADC_Buffer_Size = 2*blksiz;
 }

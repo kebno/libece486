@@ -29,7 +29,8 @@
  *     flagerror(error_code);
  *    @endcode where @a error_code is an integer value to be stored in the #errorbuf array
  *  - Predefined error codes are provided in err486.h for #SAMPLE_OVERRUN, 
- *    #MEMORY_ALLOCATION_ERROR, #DAC_CONFIG_ERROR, #ADC_CONFIG_ERROR, and #DEBUG_ERROR.
+ *    #MEMORY_ALLOCATION_ERROR, #DAC_CONFIG_ERROR, #ADC_CONFIG_ERROR, #SETBLOCKSIZE_ERROR,
+ *    and #DEBUG_ERROR.
  */
 
 /*!
@@ -51,6 +52,7 @@
 #define MEMORY_ALLOCATION_ERROR 3	//!< malloc() or calloc() returned NULL
 #define DAC_CONFIG_ERROR 4
 #define ADC_CONFIG_ERROR 5
+#define SETBLOCKSIZE_ERROR 6		//!< setblocksize() must be called BEFORE initialize()
 #define DEBUG_ERROR 13			//!< Generic code that users may use
 /*! @} End of ECE486_Error_Codes Group */
 

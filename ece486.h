@@ -13,6 +13,14 @@
     The user interface is as follows:
 	
       -# Required include: @code #include "ece486.h" @endcode
+      -# Optionally, the user calls @code
+                    setblocksize(nsamp);
+        @endcode
+        This call is used to change the data block size that will be delivered
+        to the user in late function calls. (If setblocksize() is not called,
+        a default value of #DEFAULT_BLOCKSIZE is used.)  Using a larger block
+        size may result in more efficient code, while using a smaller block 
+        size will reduce the latency of the system.
       -# The user calls @code
 		    initialize(fs, input_mode, output_mode);
 	@endcode 
