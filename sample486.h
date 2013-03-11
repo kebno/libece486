@@ -25,6 +25,7 @@
 
 extern uint32_t ADC_Block_Size;	 //!< Number of samples user accesses per data block
 extern uint32_t ADC_Buffer_Size; //!< Total buffer size being filled by DMA for ADC/DAC
+extern volatile int Lower_Ready; //!< Flag to indicate which half of ADC buffer may be processed
 
 
 /*!
@@ -63,6 +64,8 @@ enum Processor_Task {
   PROCESS_BUFFER,	//!< User is working on a buffer of data
   WAIT_FOR_NEXT_BUFFER	//!< User is done working... waiting for the next buffer
 };
+
+extern enum Processor_Task volatile Sampler_Status;
 
 /*!
  * @defgroup ECE486_Sample_Functions User interface functions for sampled data

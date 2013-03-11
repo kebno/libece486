@@ -62,7 +62,10 @@
 #define FS_96K	875	//!<    96 ksamples/sec
 #define FS_50K	1680	//!<    50 ksamples/sec
 #define FS_48K	1750	//!<    48 ksamples/sec
+#define FS_32K	2625	//!<    32 ksamples/sec
+#define FS_25K  3360    //!<    25 ksamples/sec
 #define FS_24K	3500	//!<    24 ksamples/sec
+#define FS_16K  5250    //!<    16 ksamples/sec
 #define FS_12K	7000	//!<    12 ksamples/sec
 #define FS_10K	8400	//!<    10 ksamples/sec
 #define FS_8K	10500	//!<    8 ksamples/sec
@@ -80,6 +83,7 @@
  */
 enum Num_Channels_In {
   MONO_IN,		//!< Mono Input: Only configure ADC1, single DMA Transfer
+  MONO_MIC_IN,		//!< Mic input (MP45DT02): Mono input, no input DMA
   STEREO_IN		//!< Stereo Input: Configure ADC1 and ADC2, dual DMA Transfer
 };
 
@@ -96,6 +100,15 @@ enum Num_Channels_Out {
 /*
  * Global variables.....................................................................
  */
+
+/*!
+ * @brief Destination for the delivery of output DAC samples.  
+ * 
+ * Declared as a global
+ * here so that the ISR for the Microphone sample stream can write the output
+ * samples to the DAC at the appropriate time
+ */
+extern uint32_t *DAC_Data_Destination;
 
 /*
  * Function Prototypes.....................................................................
@@ -137,7 +150,9 @@ void initgpio(void);
  * output sequence.  When the data is transfered, the conversion is made
  * to generate the new output voltage.
  */
-void initdac(void);
+void initdac(
+  uint32_t dac_trigger	//!< Trigger source for the DAC
+);
 
 
 /*!
@@ -151,7 +166,9 @@ void initdac(void);
  * 
  * @see initdac()
  */
-void initdac2(void);
+void initdac2(
+  uint32_t dac_trigger	//!< Trigger source for the DAC
+);
 
 /*!
  * @brief Initialize ADC1 for the Mono input case only.

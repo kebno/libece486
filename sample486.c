@@ -30,15 +30,15 @@ uint32_t ADC_Buffer_Size = 2*DEFAULT_BLOCKSIZE; //!< Total buffer size being fil
  * arrive. The variable is used in the interrupt service routine to detect 
  * whether a "buffer overrun" has occurred.
  */
-static enum Processor_Task volatile Sampler_Status;
+enum Processor_Task volatile Sampler_Status;
 
 /*
- * The ISR also sets the lowerrdy flag to indicate whether the processor 
+ * The ISR also sets the Lower_Ready flag to indicate whether the processor 
  * should be working  on the upper half or the lower half of the DMA 
  * data buffers.  (The user gets to work on
  * one half of the data, while the DMAs are streaming the other half.)
  */
-static volatile int lowerrdy = 0;  // Set by the ISR to indicate which 
+volatile int Lower_Ready = 0;      // Set by the ISR to indicate which 
 				   // buffer is available
 
 /*
@@ -105,9 +105,9 @@ void getblock(float * working)
   Sampler_Status = WAIT_FOR_NEXT_BUFFER;
   while (Sampler_Status == WAIT_FOR_NEXT_BUFFER) __WFI();
 
-  // The DMA ISR sets the lowerrdy flag to indicate whether we should
+  // The DMA ISR sets the Lower_Ready flag to indicate whether we should
   // be processing the upper or lower half of the DMA transfer block.
-  if (lowerrdy) {
+  if (Lower_Ready) {
     inbuf = ADC_Input_Buffer;
     outbuf = DAC_Output_Buffer;
   } else {
@@ -179,9 +179,9 @@ void getblockstereo(float *chan1, float *chan2)
   Sampler_Status = WAIT_FOR_NEXT_BUFFER;
   while (Sampler_Status == WAIT_FOR_NEXT_BUFFER) __WFI();
 
-  // The DMA ISR sets the lowerrdy flag to indicate whether we should
+  // The DMA ISR sets the Lower_Ready flag to indicate whether we should
   // be processing the upper or lower half of the DMA transfer block.
-  if (lowerrdy) {
+  if (Lower_Ready) {
     inbuf = ADC_Input_Buffer;
     outbuf = DAC_Output_Buffer;
   } else {
@@ -212,12 +212,12 @@ void DMA2_Stream4_IRQHandler(void)
   
   if (DMA_GetITStatus(DMA2_Stream4, DMA_IT_HTIF4)) {
     DMA_ClearITPendingBit(DMA2_Stream4, DMA_IT_HTIF4);
-    lowerrdy = 1; 			//lower half ready for processing
+    Lower_Ready = 1; 			//lower half ready for processing
     // GPIO_SetBits(GPIOA, GPIO_Pin_1 );
     
   } else if (DMA_GetITStatus(DMA2_Stream4, DMA_IT_TCIF4)) {
     DMA_ClearITPendingBit(DMA2_Stream4, DMA_IT_TCIF4);
-    lowerrdy = 0;			//upper half ready for processing
+    Lower_Ready = 0;			//upper half ready for processing
     // GPIO_ResetBits(GPIOA, GPIO_Pin_1 );
     
   } else {

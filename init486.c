@@ -22,7 +22,14 @@
 #include "init486.h"
 #include "err486.h"
 #include "blinkandwait.h"
+#include "config_mp45dt02.h"
 
+/*
+ * Destination for the delivery of output DAC samples.  Declared as a global
+ * here so that the ISR for the Microphone sample stream can write the output
+ * samples to the DAC at the appropriate time
+ */
+uint32_t *DAC_Data_Destination;
 
 /*
  * Basic wrapper function to initialize peripherals for ECE 486 labs
@@ -31,6 +38,7 @@ void initialize(uint16_t fs,
 		enum Num_Channels_In chanin, 
 		enum Num_Channels_Out chanout)
 {
+  uint32_t dac_trigger;
   /*
    * Error Flags, Clocks, I/O pins...  And then rest until we see a "User" button press
    */
@@ -58,37 +66,52 @@ void initialize(uint16_t fs,
   /*
    * DAC Configuration
    */
+  if (chanin==MONO_MIC_IN) {  // For the Mic, the I2S interface sets the clock rate
+                              // DAC Samples are written as input sample arrive
+    dac_trigger = DAC_Trigger_None;
+  } else {                    // For the ADCs, the clock is determined using the timers
+                              // DMAs are used to manage arrival and delivery of samples
+    dac_trigger = DAC_Trigger_T6_TRGO;
+  }
+      
+      
   if (chanout == MONO_OUT) {
-    initdac();
+    initdac(dac_trigger);
+    DAC_Data_Destination = (uint32_t *)DAC_DHR12L2_ADDRESS;
   } else if (chanout == STEREO_OUT) {
-    initdac();
-    initdac2();
+    initdac(dac_trigger);
+    initdac2(dac_trigger);
+    DAC_Data_Destination = (uint32_t *)DAC_DHR12LD_ADDRESS;
   } else {
     flagerror(DAC_CONFIG_ERROR);
   }
-  initdacdma(chanout);
-  inittim6(fs);
+  
+  if (chanin != MONO_MIC_IN){  // The ADCs take advantage of the timers & DMAs
+    initdacdma(chanout);
+    inittim6(fs);
+  }
 	
   /*
-   * ADC Configuration
+   * Input Configuration
    */
-  if (chanin == MONO_IN) {
+  if (chanin == MONO_MIC_IN) {
+    init_mp45dt02(fs);
+  } else if (chanin == MONO_IN) {
     initadc();
     initadcdma();
+    inittim3(fs);	// Triggers the ADC to determine the sample rate
+    initnvic();		// Interrupts for detecting ADC Buffer fill status
   } else if (chanin == STEREO_IN) {
     initadcstereo();
     initadcdmastereo();
+    inittim3(fs);	// Triggers the ADC to determine the sample rate
+    initnvic();		// Interrupts for detecting ADC Buffer fill status
   }
-  inittim3(fs);
-  
-  /*
-   * Interrupts for detecting when the ADC buffers are filling
-   */
-  initnvic();
+
   
   // Enable to see system clock outputs on PA8 and PC9.
   // (Be sure to enable GPIOA and GPIOC in the initrcc call)
-  // cfgmco();
+  cfgmco();
 }
 
 
@@ -215,12 +238,12 @@ void initgpio(void)
 	  trigger the DMA transfers.  DAC_Channel_1 is enabled 
 	  when STEREO output is requested.
 */
-void initdac(void)
+void initdac(uint32_t dac_trigger)
 {
   DAC_InitTypeDef DAC_InitStructure;
 
   /* DAC channel2 Configuration */
-  DAC_InitStructure.DAC_Trigger = DAC_Trigger_T6_TRGO;
+  DAC_InitStructure.DAC_Trigger = dac_trigger;
   DAC_InitStructure.DAC_WaveGeneration = DAC_WaveGeneration_None;
   DAC_InitStructure.DAC_OutputBuffer = DAC_OutputBuffer_Enable;
   DAC_InitStructure.DAC_LFSRUnmask_TriangleAmplitude = DAC_LFSRUnmask_Bit0;
@@ -233,12 +256,12 @@ void initdac(void)
   DAC_DMACmd(DAC_Channel_2, ENABLE);
 }
 
-void initdac2(void)
+void initdac2(uint32_t dac_trigger)
 {
   DAC_InitTypeDef DAC_InitStructure;
 
   /* DAC channel1 Configuration */
-  DAC_InitStructure.DAC_Trigger = DAC_Trigger_T6_TRGO;
+  DAC_InitStructure.DAC_Trigger = dac_trigger;
   DAC_InitStructure.DAC_WaveGeneration = DAC_WaveGeneration_None;
   DAC_InitStructure.DAC_OutputBuffer = DAC_OutputBuffer_Enable;
   DAC_InitStructure.DAC_LFSRUnmask_TriangleAmplitude = DAC_LFSRUnmask_Bit0;
@@ -650,7 +673,7 @@ void cfgmco(void)
 	//    RCC_MCO2Source_PLLCLK
 	//
 	// Clock Division by 1, 2, 3, 4, or 5 needed to satisfy the GPIO Speed
-	RCC_MCO2Config(RCC_MCO2Source_SYSCLK, RCC_MCO2Div_4);
+	RCC_MCO2Config(RCC_MCO2Source_PLLI2SCLK, RCC_MCO2Div_4);
 
   
 }
