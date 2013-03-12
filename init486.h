@@ -133,7 +133,9 @@ void initnvic(void);
  * Enables clocks to the required peripherals (GPIO ports used, ADCs, DACs, Timers, 
  * DMAs).
  */
-void initrcc(void);
+void initrcc(
+  enum Num_Channels_In chanin   //!< Input channel configuration
+);
 
 /*!
  * @brief Configure GPIO ports
@@ -335,6 +337,18 @@ void initialize(
   enum Num_Channels_In chanin,	//!< [in] Number of input channels: MONO_IN or STEREO_IN
   enum Num_Channels_Out chanout	//!< [in] Number of output channels: MONO_OUT or STEREO_OUT
 );
+
+/*!
+ * @brief  Simple function to return the best guess at the actual sampling frequency.
+ *
+ *  If the Microphone is used, the I2S clock generation scheme may make the 
+ *  actual rate slightly different from the requested rate.  This function 
+ *  may be called to obtain the best guess at the actual sample rate being used.
+ *  (Assumes perfect accuracy of the external 10 MHz xtal oscillator)
+ * 
+ * @returns Estimated sampling frequency in samples/second
+ */ 
+float getsamplingfrequency(void);
 
 /*! @} End of Functions group */
 

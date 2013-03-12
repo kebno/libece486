@@ -32,6 +32,11 @@
 uint32_t *DAC_Data_Destination;
 
 /*
+ * Actual Sample Rate
+ */
+static float Actual_Sampling_Frequency;
+
+/*
  * Basic wrapper function to initialize peripherals for ECE 486 labs
  */
 void initialize(uint16_t fs, 
@@ -39,11 +44,29 @@ void initialize(uint16_t fs,
 		enum Num_Channels_Out chanout)
 {
   uint32_t dac_trigger;
+  int I2S_div;
+  
+  /*
+   * Calculate the actual sampling rate, and save it for access later 
+   * through getsamplingfrequency().
+   * 
+   * If the ADCs are used for input, the sampling rate is generated from the 
+   * 84 MHz clocks driving the timers.
+   */
+  Actual_Sampling_Frequency = 84000000.0f / ((float) fs);
+  
+  /*
+   * If the Mic is used, then the rate comes from dividing down a 86 MHz clock
+   * to generate the I2S clock (which is at 64 times the desired rate).
+   */
+  I2S_div = 86000000.0f / (64.0f * Actual_Sampling_Frequency)  + 0.5;
+  Actual_Sampling_Frequency = 86000000.0f / ((float) I2S_div) / 64.0f;
+  
   /*
    * Error Flags, Clocks, I/O pins...  And then rest until we see a "User" button press
    */
   initerror();
-  initrcc();
+  initrcc(chanin);
   initgpio();
   blinkandwait();	// Rest here until the user button is pressed to allow 
 			// st-flash to reprogram without errors. 
@@ -111,7 +134,7 @@ void initialize(uint16_t fs,
   
   // Enable to see system clock outputs on PA8 and PC9.
   // (Be sure to enable GPIOA and GPIOC in the initrcc call)
-  cfgmco();
+  // cfgmco();
 }
 
 
@@ -122,7 +145,7 @@ void initialize(uint16_t fs,
 	By only clocking the necessary peripherals, less power
 	is used.
 */	
-void initrcc(void)
+void initrcc(enum Num_Channels_In chanin)
 {
   /*
    * apb2 max clock 84mhz
@@ -144,25 +167,27 @@ void initrcc(void)
   // (Pins PC4 and PC5 configured as digital outputs for users)
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
     
-
   // DAC Periph clock enable 
   RCC_APB1PeriphClockCmd(RCC_APB1Periph_DAC, ENABLE);
+  
+  // If we're using the Mic, then we don't need the timers, DMAs or ADCs:
+  if (chanin != MONO_MIC_IN) {
+    // Timer 6 used to trigger the DAC
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM6, ENABLE);
+    
+    // DMA1, Stream 5, Used to transfer data to the DAC
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA1, ENABLE);
+    
+    // DMA2, Stream 0, Used to transfer data from the ADCs
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE);
+    
+    // ADC1 and ADC2 Periph clock
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC2, ENABLE);
 
-  // Timer 6 used to trigger the DAC
-  RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM6, ENABLE);
-  
-  // DMA1, Stream 5, Used to transfer data to the DAC
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA1, ENABLE);
-  
-  // DMA2, Stream 0, Used to transfer data from the ADCs
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE);
-  
-  // ADC1 and ADC2 Periph clock
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC2, ENABLE);
-
-  // Timer 3 used to trigger the ADC
-  RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+    // Timer 3 used to trigger the ADC
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+  }
   
 }
 
@@ -678,4 +703,13 @@ void cfgmco(void)
   
 }
 
+/*
+ * Simple function to return the best guess at the actual sampling frequency.
+ *
+ * (If the Microphone is used, the I2S clock generation scheme may make the 
+ *  actual rate slightly different from the requested rate)
+ */ 
+float getsamplingfrequency(void){
+  return Actual_Sampling_Frequency;
+}
 

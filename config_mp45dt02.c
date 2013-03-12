@@ -192,7 +192,6 @@ void SPI2_IRQHandler(void)
   /* Check if data are available in SPI Data register ("Receive Bufer not Empty" state)*/
   if (SPI_I2S_GetITStatus(SPI2, SPI_I2S_IT_RXNE) != RESET)
   {
-    GPIO_ToggleBits(GPIOC, GPIO_Pin_5 );
     rcv = SPI_I2S_ReceiveData(SPI2);
 	
     /*
@@ -290,27 +289,29 @@ void SPI2_IRQHandler(void)
 	next_y = on_deck_y;
 	on_deck_y = last_y;
 	last_y = 0;
+	phase = 1;	// Next Phase
 	break;
       case 1:
 	next_y += fir_coefs[3]*y;
 	on_deck_y += fir_coefs[7]*y;
 	last_y += fir_coefs[11] * y;
+	phase = 2;	// Next Phase
 	break;
       case 2:
 	next_y += fir_coefs[2]*y;
 	on_deck_y += fir_coefs[6]*y;
 	last_y += fir_coefs[10] * y;
+	phase = 3;	// Next Phase
 	break;
       case 3:
 	next_y += fir_coefs[1]*y;
 	on_deck_y += fir_coefs[5]*y;
 	last_y += fir_coefs[9] * y;
-	phase=-1;	// So that phase is incremented modulo 4
+	phase=0;	// Next Phase
 	break;
       default:
 	phase=0;
     }
-    phase++;	// Prepare for the next sample into the filter.
   }
 }
 
