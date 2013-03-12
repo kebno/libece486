@@ -8,11 +8,6 @@
  * @date Mar 5, 2013
  */
 
-/*
- * 
- * 
- */
-
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -28,10 +23,9 @@ static void init_mp45dt02_NVIC(void);
 static void init_mp45dt02_spi(uint16_t fs);
 static void init_mp45dt02_gpio(void);
 
-#define HTONS(A)  ((((u16)(A) & 0xff00) >> 8) | \
-                   (((u16)(A) & 0x00ff) << 8))
-
-
+/*
+ * Wrapper function called by users
+ */
 void init_mp45dt02(uint16_t fs) 
 {
   init_mp45dt02_gpio();
@@ -39,6 +33,12 @@ void init_mp45dt02(uint16_t fs)
   init_mp45dt02_spi(fs);
 }
 
+/*!
+ * @brief GPIO Setup for MP45DT02 Microphone
+ * 
+ * PB10 (SPI2 SCK) and PC3 (SPI2 MOSI) are configured as "Alternate function"
+ * GPIO pins to communicate with the microphone.
+ */
 static void init_mp45dt02_gpio(void)
 {
   GPIO_InitTypeDef GPIO_InitStructure;
@@ -73,8 +73,11 @@ static void init_mp45dt02_gpio(void)
   GPIO_PinAFConfig(GPIOC, GPIO_PinSource3, GPIO_AF_SPI2);
 }
 
-/*
- * SPI2 Initialization
+/*!
+ * @brief MP45DT02 Microphone SPI2 Initialization
+ * 
+ * SPI2 is used to capture the 1-bit microphone data stream and to trigger
+ * the processor to filter and decimate the data stream in 16-bit blocks.
  */
 static void init_mp45dt02_spi(uint16_t Freq)
 {
@@ -148,8 +151,11 @@ static void init_mp45dt02_spi(uint16_t Freq)
   I2S_Cmd(SPI2, ENABLE);
 }
 
-/*
- *   Initialize the NVIC.
+/*!
+ *  @brief MP45DT02 Microphone initialization of the NVIC.
+ * 
+ * Every 16-bits of data from the MP45DT02 triggers an interrupt which must be 
+ * processed by an ISR
  */
 static void init_mp45dt02_NVIC(void)
 {
@@ -164,8 +170,17 @@ static void init_mp45dt02_NVIC(void)
   NVIC_Init(&NVIC_InitStructure);
 }
 
-/*
- * SPI2 Interrupt Handler
+/*!
+ *  @brief MP45DT02 SPI2 Interrupt Handler
+ * 
+ * This ISR processed data from the MP45DT02 microphone.  The one-bit data stream
+ * is passed through a 4-stage comb filter (which decimates by a factor of 16).  
+ * The output of the comb filter is passed through a 12-coefficient FIR filter
+ * (which decimates by an additional factor of 4).  The output PCM data is then
+ * passed to the user input sample blocks.
+ * 
+ * User output samples are also written to the DAC, so that data transfers to
+ * the DAC are synchronous to data transfers from the Microphone.
  */
 void SPI2_IRQHandler(void)
 {  
