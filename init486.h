@@ -344,7 +344,7 @@ void initialize(
  *  If the Microphone is used, the I2S clock generation scheme may make the 
  *  actual rate slightly different from the requested rate.  This function 
  *  may be called to obtain the best guess at the actual sample rate being used.
- *  (Assumes perfect accuracy of the external 10 MHz xtal oscillator)
+ *  (Assumes perfect accuracy of the external 8 MHz xtal oscillator)
  * 
  * @returns Estimated sampling frequency in samples/second
  */ 

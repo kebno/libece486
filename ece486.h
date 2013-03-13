@@ -71,7 +71,7 @@
 		fs = getsamplingfrequency();
 	@endcode
 	This function returns the best guess (assuming the HFE oscillator is 
-	exactly at 10 MHz) at the actual sampling rate being implemented (in
+	exactly at 8 MHz) at the actual sampling rate being implemented (in
 	samples/second).  The actual sample rate may be slightly different from
 	the requested  rate, particularly if the Microphone is used as the input
 	device.
