@@ -29,7 +29,7 @@ void blinkandwait(void)
   GPIO_SetBits(GPIOD, GPIO_Pin_15);
   while(UserButtonPressed == Button_Ready) {
     GPIO_ToggleBits(GPIOD, GPIO_Pin_13 | GPIO_Pin_15);
-    Delay(0x300000);
+    Delay(0xC00000);
   }
   
   // Now Run with only the green LED on
